@@ -14,33 +14,39 @@
     - /usr/sbin/ausearch
     - /usr/sbin/autrace
     - /usr/sbin/rsyslogd
- 
+
 - name: Ensure existing AIDE configuration for audit tools are correct
   ansible.builtin.lineinfile:
     path: /etc/aide.conf
     regexp: ^{{ item }}\s
     line: '{{ item }} p+i+n+u+g+s+b+acl+xattrs+sha512'
+  register: aide_ensure
   with_items: '{{ audit_tools }}'
 
 - name: Configure AIDE to properly protect audit tools
   ansible.builtin.lineinfile:
     path: /etc/aide.conf
     line: '{{ item }} p+i+n+u+g+s+b+acl+xattrs+sha512'
+  register: aide_configure
   with_items: '{{ audit_tools }}'
 
-- name: Build and Test AIDE Database
-  ansible.builtin.command: /usr/sbin/aide --init
-  changed_when: true
+- name:  AIDE Database tasks
+  block:
+    - name: Build and Test AIDE Database
+      ansible.builtin.command: /usr/sbin/aide --init
+      changed_when: true
 
-- name: Check whether the stock AIDE Database exists
-  ansible.builtin.stat:
-    path: /var/lib/aide/aide.db.new.gz
-  register: aide_database_stat
+    - name: Check whether the stock AIDE Database exists
+      ansible.builtin.stat:
+        path: /var/lib/aide/aide.db.new.gz
+      register: aide_database_stat
 
-- name: Stage AIDE Database
-  ansible.builtin.copy:
-    src: /var/lib/aide/aide.db.new.gz
-    dest: /var/lib/aide/aide.db.gz
-    remote_src: true
+    - name: Stage AIDE Database
+      ansible.builtin.copy:
+        src: /var/lib/aide/aide.db.new.gz
+        dest: /var/lib/aide/aide.db.gz
+        remote_src: true
   when:
-    - (aide_database_stat.stat.exists is defined and aide_database_stat.stat.exists)
+    - aide_database_stat.stat.exists is defined and aide_database_stat.stat.exists
+    - (aide_ensure is defined and aide_ensure is changed) or
+      (aide_configure is defined and aide_configure is changed)

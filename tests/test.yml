@@ -1,5 +1,4 @@
 ---
 - hosts: localhost
-  remote_user: root
   roles:
     - theforeman_custom.aide_for_audit_tools
