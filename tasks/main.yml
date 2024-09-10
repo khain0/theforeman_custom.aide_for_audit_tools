@@ -1,11 +1,11 @@
 ---
 - name: Ensure aide is installed
-  package:
+  ansible.builtin.package:
     name: aide
     state: present
 
 - name: Set audit_tools fact
-  set_fact:
+  ansible.builtin.set_fact:
     audit_tools:
     - /usr/sbin/auditctl
     - /usr/sbin/auditd
@@ -16,29 +16,29 @@
     - /usr/sbin/rsyslogd
  
 - name: Ensure existing AIDE configuration for audit tools are correct
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/aide.conf
     regexp: ^{{ item }}\s
     line: '{{ item }} p+i+n+u+g+s+b+acl+xattrs+sha512'
   with_items: '{{ audit_tools }}'
 
 - name: Configure AIDE to properly protect audit tools
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/aide.conf
     line: '{{ item }} p+i+n+u+g+s+b+acl+xattrs+sha512'
   with_items: '{{ audit_tools }}'
 
 - name: Build and Test AIDE Database
-  command: /usr/sbin/aide --init
+  ansible.builtin.command: /usr/sbin/aide --init
   changed_when: true
 
 - name: Check whether the stock AIDE Database exists
-  stat:
+  ansible.builtin.stat:
     path: /var/lib/aide/aide.db.new.gz
   register: aide_database_stat
 
 - name: Stage AIDE Database
-  copy:
+  ansible.builtin.copy:
     src: /var/lib/aide/aide.db.new.gz
     dest: /var/lib/aide/aide.db.gz
     remote_src: true
